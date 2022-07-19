@@ -9,15 +9,13 @@ db.connect(err => {
     promptUser();
 });
 
-
 const display_all_depts = (isUpdate) => {
     const txt = isUpdate ? "UPDATED" : "all";
     console.log(`\n*** Displaying ${txt} Depts ***\n`);
 
-    const sql = `SELECT department.id AS ID, department.name AS DEPARTMENT FROM department`; 
+    const sql = `SELECT department.id AS ID, department.name AS DEPARTMENT FROM department`;
 
     db.promise().query(sql).then(([rows, fields]) => {
-      
       console.table(rows);
       return promptUser();
     });
@@ -73,11 +71,11 @@ const add_role = () => {
         })
 }
 
-const display_all_employees = (isUpdate) => {
-    const txt = isUpdate ? "UPDATED" : "all";
+const display_all_employees = ((isUpdatedTable, isUpdatedRole) => {
+    const txt = isUpdatedTable ? "UPDATED" : "all";
     console.log(`\n*** Displaying ${txt} Employees ***\n`);
 
-    const sql = `WITH managers AS (
+    const q1 = `WITH managers AS (
                     SELECT id, CONCAT(first_name, ' ', last_name) MANAGER
                     FROM employee
                 )
@@ -90,12 +88,25 @@ const display_all_employees = (isUpdate) => {
                     JOIN role r ON e.role_id = r.id)
                     JOIN managers m ON e.manager_id = m.id);`;
 
+    const q2 = `WITH managers AS (
+                SELECT id, CONCAT(first_name, ' ', last_name) MANAGER
+                FROM employee
+                )
+                SELECT
+                    e.id AS ID,
+                    CONCAT(e.first_name, ' ', e.last_name) EMPLOYEE,
+                    r.title AS TITLE
+                FROM employee e
+                    JOIN role r ON e.role_id = r.id;`;
+
+    const sql = isUpdatedRole ? q2 : q1;
+
     db.promise().query(sql).then(([rows, fields]) => {
 
       console.table(rows);
       return promptUser();
     });
-};
+});
 
 const add_employee = () => {
     inquirer.prompt(employee_prmpt)
@@ -108,7 +119,7 @@ const add_employee = () => {
                 if (err) {
                     console.log("error: " + err.message);
                 }
-                display_all_employees(true);
+                display_all_employees(true, false);
             })
         })
 }
@@ -116,49 +127,63 @@ const add_employee = () => {
 promptEmployeeUpdate = function(emp_list) {
     return inquirer.prompt([
         {
-        type: 'list',
-        name: 'employee',
-        message: 'Which employee would you like to update?',
-        choices: emp_list
-    },{
-        type: 'input',
-        name: 'role',
-        message: 'What is the new role?',
-        validate: (role) => {
-            if (role) {
-                return true;
-            } else {
-                console.log("Please provide the employee's new role");
-                return false;
+            type: 'list',
+            name: 'employee',
+            message: 'Which employee would you like to update?',
+            choices: emp_list
+        },
+        {
+            type: 'number',
+            name: 'roleID',
+            message: 'What is the new role ID?',
+            validate: (roleID) => {
+                if (roleID) {
+                    return true;
+                } else {
+                    console.log("Please provide the employee's new role ID");
+                    return false;
+                }
             }
         }
-    }])
+    ])
 }
-
 
 const update_employee = () => {
 
-    //TODO: We are on the write track with this function: update to account for employee id + do final sql query to update
-    console.log("updating employee");
+    // console.log("updating employee");
 
     let employees = [];
-    let updateable_empl = "";
-    let new_role = "";
-    const sql = `SELECT id, CONCAT(first_name, ' ', last_name) AS name FROM employee`;
+    let id, updateable_empl, new_role_id;
+    const idPattern = /^[^\d]*(\d+)/;
+    const sql = `SELECT CONCAT(id, '-', first_name, ' ', last_name) AS employee FROM employee`;
     db.promise().query(sql).then(([rows]) => {
         for(let i = 0; i < rows.length; i++)
-            employees.push(rows[i].name);
+            employees.push(rows[i].employee);
+
+        // console.log(employees);
         promptEmployeeUpdate(employees).then((answers) => {
             updateable_empl = answers.employee;
-            new_role = answers.role;
-            console.log(`${updateable_empl}: ${new_role}`);
-        })
-    });
+            new_role_id = answers.roleID;
+            console.log(`${updateable_empl}: ${new_role_id}`);
+            if(idPattern.test(updateable_empl))
+                id = idPattern.exec(updateable_empl);
+            // console.log(id[0]);
+            return [ new_role_id, id[0] ];
+         })
+        .then((params) => {
 
-    // const sql = `UPDATE candidates SET party_id = ? 
-    // WHERE id = ?`;
-}
-
+            console.log(params)
+            const sql = `UPDATE employee SET role_id = ? WHERE id = ?`;    
+                db.query(sql, params, (err, row) => {
+                    if (err) {
+                        console.log("error: " + err.message);
+                    }
+                    display_all_employees(true, true);
+                })
+    
+        });
+    })
+};
 
 promptUser = function() {
     inquirer.prompt(intial_prompt)
