@@ -18,14 +18,12 @@ VALUES
 
 INSERT into employee (first_name, last_name, role_id, manager_id)
 VALUES
-    ('HR', 'Director', 1, NULL),
-    ('HR', 'Manager', 2, 1),
-    ('HR', 'Assistant', 3, 2),
-    ('Programming', 'Director', 4, NULL),
-    ('Programming', 'Manager', 5, 4),
-    ('Programming', 'Programmer', 6, 5),
-    ('Validation', 'Director', 7, NULL),
-    ('Validation', 'Manager', 8, 7),
-    ('Validation', 'Tester', 9, 8);
-
-
+    ('Alicia', 'HR-Director', 1, 1),
+    ('Mack', 'HR-Manager', 2, 1),
+    ('Happy', 'HR-Assistant', 3, 2),
+    ('Lisa', 'Programming-Director', 4, 1),
+    ('Marshall', 'Programming-Manager', 5, 4),
+    ('Steve', 'Programmer', 6, 5),
+    ('Oscar', 'Validation-Director', 7, 1),
+    ('Heidii', 'Validation-Manager', 8, 7),
+    ('Nakia', 'Validation-Tester', 9, 8);
